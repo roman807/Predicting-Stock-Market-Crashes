@@ -5,6 +5,7 @@ Created on Tue Oct 16 21:15:58 2018
 
 @author: roman
 """
+# v5: normalize data
 
 import numpy as np
 import pandas as pd
@@ -55,7 +56,7 @@ class DataLoader():
             df_d = df_d.sort_values(by='drawdown')
             df_d['rank'] = list(range(1,df_d.shape[0]+1))
             drawdowns.append(df_d)
-            df_d = df_d.sort_values(by='Date')
+            #df_d = df_d.sort_values(by='Date')  <-  RAISES KEY ERROR IN GOOGLE COLAB
             df_c = df_d[df_d['drawdown'] < ct]
             df_c.columns = ['drawdown', 'crash_st', 'crash_end', 'rank']
             c_st = list(df_c['crash_st'])
@@ -69,26 +70,48 @@ class DataLoader():
             df_combined.append(pd.concat([datasets[i], drawdowns[i]], axis=1))
         return df_combined, drawdowns, crashes
 
-    def get_df_xy(self, months, sequence, df_combined, crashes, select_features=False, vol=False):
+    def get_df_xy(self, months, sequence, df_combined, crashes, batch_size, select_features=False, \
+                  additional_feat=False):
     ### dfs_xy: dataframe for each dataset x (columns 0:-1) and  y (column -1)     
         dfs_xy = []
         if select_features == False:    
             for df, c in zip(df_combined, crashes):
+                df['ch'] = df['ch'] / abs(df['ch']).max()
+                df['vol'] = df['vol'] / abs(df['vol']).max()
                 xy = {}
+                if additional_feat == False:
                 #for date in df.index[255:-126]: # <--subtract 126 days in the end
-                for i in range(sequence, df.shape[0]-126):
-                    date = df.index[i]
-                    x_ch = [df['ch'].iloc[i-j] for j in range(sequence)]
-                    x_vol = []
-                    if vol == True:
-                        x_vol = [df['vol'].iloc[i-j] for j in range(sequence)]
-                    xy[date] = x_ch + x_vol
-                    xy[date].append(max([date <= c and date+timedelta(months * 21) > c \
-                      for c in c['crash_st']]))
-                df_xy = pd.DataFrame.from_dict(xy, orient='index').dropna()
-                dfs_xy.append(df_xy)
+                    for i in range(sequence, df.shape[0] - 126):
+                        date = df.index[i]
+                        xy[date] = [df['ch'].iloc[i-j] for j in range(sequence)]
+                        xy[date].append(max([date <= c and date+timedelta(months * 21) > c \
+                          for c in c['crash_st']]))
+                    df_xy = pd.DataFrame.from_dict(xy, orient='index').dropna()
+                    len_adj = df_xy.shape[0] - df_xy.shape[0] % batch_size 
+                    df_xy = df_xy.iloc[:len_adj, :]
+                    dfs_xy.append(df_xy)
+                if additional_feat == True:
+                    for i in range(252, df.shape[0]-126):
+                        date = df.index[i]    
+                        xy[date] = [df['ch'].iloc[i-j] for j in range(sequence)]
+                        xy[date].append(df['ch'][(date-timedelta(21)):(date-timedelta(sequence))].mean())
+                        xy[date].append(df['ch'][(date-timedelta(3*21)):(date-timedelta(21))].mean())
+                        xy[date].append(df['ch'][(date-timedelta(6*21)):(date-timedelta(3*21))].mean())
+                        xy[date].append(df['ch'][(date-timedelta(252)):(date-timedelta(6*21))].mean())
+                        xy[date].append(df['vol'][(date-timedelta(21)):(date-timedelta(sequence))].mean())
+                        xy[date].append(df['vol'][(date-timedelta(3*21)):(date-timedelta(21))].mean())
+                        xy[date].append(df['vol'][(date-timedelta(6*21)):(date-timedelta(3*21))].mean())
+                        xy[date].append(df['vol'][(date-timedelta(252)):(date-timedelta(6*21))].mean())
+                        xy[date].append(max([date <= c and date+timedelta(months * 21) > c \
+                          for c in c['crash_st']]))
+                    df_xy = pd.DataFrame.from_dict(xy, orient='index').dropna()
+                    len_adj = df_xy.shape[0] - df_xy.shape[0] % batch_size 
+                    df_xy = df_xy.iloc[:len_adj, :]
+                    dfs_xy.append(df_xy)        
         if select_features == True:
             for df, c in zip(df_combined, crashes):
+                df['ch'] = df['ch'] / abs(df['ch']).max()
+                df['vol'] = df['vol'] / abs(df['vol']).max()
                 xy = {}
                 for date in df.index[252:-126]: # <--subtract 126 days in the end
                     x_ch_12_6m = df['ch'][(date-timedelta(252)):(date-timedelta(126))].mean()
@@ -119,7 +142,52 @@ class DataLoader():
                 dfs_xy.append(df_xy)
         return dfs_xy
 
-    def get_train_test(self, dfs_xy, years):
+    def get_train_stateful(self, dfs_xy, dataset_names, test_data):
+    ### get n_datasets * 2 train/test splits: first and last n years of each dataset are chosen
+    ### as test set.
+    ### np_train: list of all training sets, np_test: list of all corresponding test sets """
+        for i, name in enumerate(dataset_names):
+            if name == test_data:
+                index = i
+        dfs_xy_copy = list(dfs_xy)
+        dfs_xy_copy.pop(index)
+        l_np_train = [np.array(xy) for xy in dfs_xy_copy]
+        return l_np_train
+
+    def get_train_test(self, dfs_xy, dataset_names, test_data):
+    ### get n_datasets * 2 train/test splits: first and last n years of each dataset are chosen
+    ### as test set.
+    ### np_train: list of all training sets, np_test: list of all corresponding test sets """
+        for i, name in enumerate(dataset_names):
+            if name == test_data:
+                index = i
+        dfs_xy_copy = list(dfs_xy)
+        df_test = dfs_xy_copy.pop(index)
+        np_test = np.array(df_test)
+        np_train = np.concatenate(([np.array(xy) for xy in dfs_xy_copy]))
+        return np_train, np_test
+
+    def split_results(self, df_combined, dfs_xy, dataset_names, test_data, y_pred_t_bin, \
+                      y_pred_tr_bin, y_train, y_test):
+    ### split results into individual datasets to plot results
+        df_combined = [dfc.reindex(dfs.index) for dfc, dfs in zip(df_combined, dfs_xy)]
+        dfs_predict = []
+        n = 0
+        for df, name in zip(df_combined, dataset_names):
+            if name == test_data:
+                df['y'] = y_test
+                df['y_pred'] = y_pred_t_bin
+                dfs_predict.append(df)
+            else:
+                df['y'] = y_train[n:n+df.shape[0]]
+                df['y_pred'] = y_pred_tr_bin[n:n+df.shape[0]]
+                dfs_predict.append(df)
+                n += df.shape[0]
+        return dfs_predict
+
+
+
+    def get_train_test_old(self, dfs_xy, years):
     ### get n_datasets * 2 train/test splits: first and last n years of each dataset are chosen
     ### as test set.
     ### np_train: list of all training sets, np_test: list of all corresponding test sets """
@@ -130,7 +198,7 @@ class DataLoader():
             i += df.shape[0]-1
             split.append(i)
         np_train = [] 
-        np_test = [] 
+        np_test = []        
         n = years * 252
         for j in range(len(dfs_xy) * 2):
             i = round(j/2 + 0.1)
@@ -141,8 +209,8 @@ class DataLoader():
                 np_test.append(np_xy[split[i]-n:split[i], :])
                 np_train.append(np.concatenate(([np_xy[0:split[i]-n,:], np_xy[split[i]:,:]])))
         return np_train, np_test
-
-    def split_results(self, df_combined, dfs_xy, crashes, dataset_names, y_pred_bin_t_all, \
+    
+    def split_results_old(self, df_combined, dfs_xy, crashes, dataset_names, y_pred_bin_t_all, \
                       y_actual, years):
     ### split results into individual datasets to plot results
         df_combined = [dfc.reindex(dfs.index) for dfc, dfs in zip(df_combined, dfs_xy)]
@@ -170,7 +238,6 @@ class DataLoader():
             ds_name_ext.append(ds_name)
             ds_name_ext.append(ds_name)
         return dfs_predict, cr_ext, ds_name_ext
-
 
 
 
