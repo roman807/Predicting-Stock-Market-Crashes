@@ -2,7 +2,7 @@
    "months":[1,3,6],
    "model_name":"Logistic Regression",
    "models":["logreg_model_1month.sav","logreg_model_3month.sav","logreg_model_6month.sav"],
-   "dataset":"^GSPC_new.csv",
+   "dataset":"^GSPC_11-05.csv",
    "dataset_name":"S&P500",
    "crash_threshold":-0.0936,
    "n_days_lookback":21,
