@@ -2,22 +2,21 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Oct 31 20:15:33 2018
-
 @author: roman
 """
-
 import numpy as np
 import pandas as pd
 from sklearn import metrics
-from datetime import datetime, timedelta
+from datetime import datetime
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
 
 class EvaluateResults():
-    def __init__(self, y_train_all, y_test_all, y_pred_tr_all, y_pred_t_all, model_name, test_data):
+    def __init__(self, y_train_all, y_val_all, y_pred_tr_all, y_pred_val_all, \
+                 model_name, test_data):
         self.y_train_all = y_train_all
-        self.y_test_all = y_test_all
-        self.y_pred_t_all = y_pred_t_all
+        self.y_val_all = y_val_all
+        self.y_pred_val_all = y_pred_val_all
         self.y_pred_tr_all = y_pred_tr_all
         self.model_name = model_name
         self.test_data = test_data
@@ -29,13 +28,13 @@ class EvaluateResults():
         thresholds = list(np.linspace(threshold_min, threshold_max, resolution))
         for threshold in thresholds:
             precision_tr, recall_tr, accuracy_tr = [], [], []
-            precision_t, recall_t, accuracy_t = [], [], []
-            y_pred_t_bin_all, y_pred_tr_bin_all = [], []
+            precision_val, recall_val, accuracy_val = [], [], []
+            y_pred_val_bin_all, y_pred_tr_bin_all = [], []
             score_fbeta_tr, score_fbeta_t = [], []
-            for y_train, y_test, y_pred_tr, y_pred_t in zip(self.y_train_all, 
-                                                            self.y_test_all, \
+            for y_train, y_val, y_pred_tr, y_pred_val in zip(self.y_train_all, 
+                                                            self.y_val_all, \
                                                             self.y_pred_tr_all,\
-                                                            self.y_pred_t_all):
+                                                            self.y_pred_val_all):
                 y_pred_tr_bin = y_pred_tr > threshold
                 y_pred_tr_bin = y_pred_tr_bin.astype(int)
                 y_pred_tr_bin_all.append(y_pred_tr_bin)
@@ -43,19 +42,19 @@ class EvaluateResults():
                 recall_tr.append(metrics.recall_score(y_train, y_pred_tr_bin))
                 accuracy_tr.append(metrics.accuracy_score(y_train, y_pred_tr_bin))
                 score_fbeta_tr.append(metrics.fbeta_score(y_train, y_pred_tr_bin, beta=beta))
-                y_pred_t_bin = y_pred_t > threshold
-                y_pred_t_bin = y_pred_t_bin.astype(int)
-                y_pred_t_bin_all.append(y_pred_t_bin)
-                precision_t.append(metrics.precision_score(y_test, y_pred_t_bin))
-                recall_t.append(metrics.recall_score(y_test, y_pred_t_bin))
-                accuracy_t.append(metrics.accuracy_score(y_test, y_pred_t_bin))
-                score_fbeta_t.append(metrics.fbeta_score(y_test, y_pred_t_bin, beta=beta))
+                y_pred_val_bin = y_pred_val > threshold
+                y_pred_val_bin = y_pred_val_bin.astype(int)
+                y_pred_val_bin_all.append(y_pred_val_bin)
+                precision_val.append(metrics.precision_score(y_val, y_pred_val_bin))
+                recall_val.append(metrics.recall_score(y_val, y_pred_val_bin))
+                accuracy_val.append(metrics.accuracy_score(y_val, y_pred_val_bin))
+                score_fbeta_t.append(metrics.fbeta_score(y_val, y_pred_val_bin, beta=beta))
             precision_tr_all.append(np.mean(precision_tr)) 
-            precision_t_all.append(np.mean(precision_t)) 
+            precision_t_all.append(np.mean(precision_val)) 
             recall_tr_all.append(np.mean(recall_tr)) 
-            recall_t_all.append(np.mean(recall_t))
+            recall_t_all.append(np.mean(recall_val))
             accuracy_tr_all.append(np.mean(accuracy_tr)) 
-            accuracy_t_all.append(np.mean(accuracy_t))
+            accuracy_t_all.append(np.mean(accuracy_val))
             fbeta_tr_all.append(np.mean(score_fbeta_tr))
             fbeta_t_all.append(np.mean(score_fbeta_t))
         plt.subplot(1,3,1)
@@ -64,7 +63,7 @@ class EvaluateResults():
         plt.title('Precision by threshold')
         plt.xlabel('Threshold')
         plt.ylabel('Precision')
-        plt.legend(['training set', 'test set'])
+        plt.legend(['training set', 'validation set'])
         plt.grid()
         plt.subplot(1,3,2)
         plt.plot(thresholds, recall_tr_all, color='blue')
@@ -72,7 +71,7 @@ class EvaluateResults():
         plt.title('Recall by threshold')
         plt.xlabel('Threshold')
         plt.ylabel('Recall')
-        plt.legend(['training set', 'test set'])
+        plt.legend(['training set', 'validation set'])
         plt.grid()
         plt.subplot(1,3,3)
         plt.plot(thresholds, fbeta_tr_all, color='blue')
@@ -80,48 +79,56 @@ class EvaluateResults():
         plt.title('F-beta score by threshold')
         plt.xlabel('Threshold')
         plt.ylabel('F-beta score')
-        plt.legend(['training set', 'test set'])
+        plt.legend(['training set', 'validation set'])
         plt.grid()
         plt.tight_layout()
         plt.show()
     
     def training_results(self, threshold, training_set_names, beta=2):
         precision_tr, recall_tr, accuracy_tr, score_fbeta_tr = [], [], [], []
-        precision_t, recall_t, accuracy_t, score_fbeta_t = [], [], [], []
-        y_pred_tr_bin_all, y_pred_t_bin_all = [], []
-        for y_train, y_test, y_pred_tr, y_pred_t in zip(self.y_train_all, self.y_test_all, \
-                                                        self.y_pred_tr_all, self.y_pred_t_all):
-            y_pred_tr_bin = y_pred_tr > threshold
-            y_pred_tr_bin = y_pred_tr_bin.astype(int)
+        precision_val, recall_val, accuracy_val, score_fbeta_val = [], [], [], []
+        y_pred_tr_bin_all, y_pred_val_bin_all = [], []
+        for y_train, y_val, y_pred_tr, y_pred_val in zip(self.y_train_all, self.y_val_all, \
+                                                        self.y_pred_tr_all, self.y_pred_val_all):
+            if threshold:
+                y_pred_tr_bin = y_pred_tr > threshold
+                y_pred_tr_bin = y_pred_tr_bin.astype(int)
+            else:
+                y_pred_tr_bin = y_pred_tr.astype(int)
             y_pred_tr_bin_all.append(y_pred_tr_bin)
             precision_tr.append(metrics.precision_score(y_train, y_pred_tr_bin))
             recall_tr.append(metrics.recall_score(y_train, y_pred_tr_bin))
             accuracy_tr.append(metrics.accuracy_score(y_train, y_pred_tr_bin))
             score_fbeta_tr.append(metrics.fbeta_score(y_train, y_pred_tr_bin, beta=beta))
-            y_pred_t_bin = y_pred_t > threshold
-            y_pred_t_bin = y_pred_t_bin.astype(int)
-            y_pred_t_bin_all.append(y_pred_t_bin)
-            precision_t.append(metrics.precision_score(y_test, y_pred_t_bin))
-            recall_t.append(metrics.recall_score(y_test, y_pred_t_bin))
-            accuracy_t.append(metrics.accuracy_score(y_test, y_pred_t_bin))
-            score_fbeta_t.append(metrics.fbeta_score(y_test, y_pred_t_bin, beta=beta))
+            if threshold:
+                y_pred_val_bin = y_pred_val > threshold
+                y_pred_val_bin = y_pred_val_bin.astype(int)
+            else:
+                y_pred_val_bin = y_pred_val.astype(int)
+            y_pred_val_bin_all.append(y_pred_val_bin)
+            precision_val.append(metrics.precision_score(y_val, y_pred_val_bin))
+            recall_val.append(metrics.recall_score(y_val, y_pred_val_bin))
+            accuracy_val.append(metrics.accuracy_score(y_val, y_pred_val_bin))
+            score_fbeta_val.append(metrics.fbeta_score(y_val, y_pred_val_bin, beta=beta))
         
         y_tr_pos = [np.mean(y) for y in self.y_train_all]
         y_tr_pred_pos = [np.mean(y_pred) for y_pred in y_pred_tr_bin_all]
-        y_t_pos = [np.mean(y) for y in self.y_test_all]
-        y_t_pred_pos = [np.mean(y_pred) for y_pred in y_pred_t_bin_all]
-        d = {'positive actual tr': np.round(y_tr_pos, 2), \
-             'positive pred tr': np.round(y_tr_pred_pos, 2), \
-             'precision tr': np.round(precision_tr,2), \
-             'recall tr': np.round(recall_tr,2), 'accuracy_tr': np.round(accuracy_tr,2), \
-             'score_fbeta tr': np.round(score_fbeta_tr,2), \
-             'positive actual t': np.round(y_t_pos, 2), \
-             'positive pred t': np.round(y_t_pred_pos, 2), \
-             'precision t': np.round(precision_t,2), \
-             'recall t': np.round(recall_t,2), 'accuracy_t': np.round(accuracy_t,2), \
-             'score fbeta t': np.round(score_fbeta_t,2)}
+        y_val_pos = [np.mean(y) for y in self.y_val_all]
+        y_val_pred_pos = [np.mean(y_pred) for y_pred in y_pred_val_bin_all]
+        d = {'positive actual train': np.round(y_tr_pos, 2), \
+             'positive pred train': np.round(y_tr_pred_pos, 2), \
+             'precision train': np.round(precision_tr,2), \
+             'recall train': np.round(recall_tr,2), \
+             'accuracy_train': np.round(accuracy_tr,2), \
+             'score_fbeta train': np.round(score_fbeta_tr,2), \
+             'positive actual val': np.round(y_val_pos, 2), \
+             'positive pred val': np.round(y_val_pred_pos, 2), \
+             'precision val': np.round(precision_val, 2), \
+             'recall val': np.round(recall_val, 2), \
+             'accuracy val': np.round(accuracy_val,2), \
+             'score fbeta val': np.round(score_fbeta_val,2)}
         results_all = pd.DataFrame.from_dict(d, orient='index')
-        results_all.columns = training_set_names  ##############
+        results_all.columns = training_set_names
         print('Results for each train/val split:')
         print(results_all)
         print('\n')
@@ -129,12 +136,12 @@ class EvaluateResults():
         # calculate precision, recall, accuracy for comparable random model
         sum_tr = sum([len(tr) for tr in self.y_train_all])
         pos_tr = sum([sum(tr) for tr in self.y_train_all])
-        sum_t = sum([len(t) for t in self.y_test_all])
-        pos_t = sum([sum(t) for t in self.y_test_all])
+        sum_val = sum([len(t) for t in self.y_val_all])
+        pos_val = sum([sum(t) for t in self.y_val_all])
         sum_tr_pred = sum([len(tr) for tr in y_pred_tr_bin_all])
         pos_tr_pred = sum([sum(tr) for tr in y_pred_tr_bin_all])
-        sum_t_pred = sum([len(t) for t in y_pred_t_bin_all])
-        pos_t_pred = sum([sum(t) for t in y_pred_t_bin_all])
+        sum_val_pred = sum([len(t) for t in y_pred_val_bin_all])
+        pos_val_pred = sum([sum(t) for t in y_pred_val_bin_all])
 
         y_train_pos_actual = pos_tr / sum_tr
         y_train_pos_pred = pos_tr_pred / sum_tr_pred
@@ -145,43 +152,48 @@ class EvaluateResults():
         rnd_pr_tr = rnd_TP / (rnd_TP+rnd_FP)
         rnd_re_tr = rnd_TP / (rnd_TP+rnd_FN)
         rnd_ac_tr = rnd_TP + rnd_TN
-        y_test_pos_actual = pos_t / sum_t
-        y_test_pos_pred = pos_t_pred / sum_t_pred
-        rnd_TP = y_test_pos_pred * y_test_pos_actual
-        rnd_FP = y_test_pos_pred * (1 - y_test_pos_actual)
-        rnd_TN = (1 - y_test_pos_pred) * (1 - y_test_pos_actual)
-        rnd_FN = (1 - y_test_pos_pred) * y_test_pos_actual
-        rnd_pr_t = rnd_TP / (rnd_TP+rnd_FP)
-        rnd_re_t = rnd_TP / (rnd_TP+rnd_FN)
-        rnd_ac_t = rnd_TP + rnd_TN
-        rnd_fbeta_tr = (1 + beta ** 2) * (rnd_pr_tr * rnd_re_t) / ((beta ** 2 * rnd_pr_tr) + rnd_re_tr)
-        rnd_fbeta_t = (1 + beta ** 2) * (rnd_pr_t * rnd_re_t) / ((beta ** 2 * rnd_pr_t) + rnd_re_t)
+        y_val_pos_actual = pos_val / sum_val
+        y_val_pos_pred = pos_val_pred / sum_val_pred
+        rnd_TP = y_val_pos_pred * y_val_pos_actual
+        rnd_FP = y_val_pos_pred * (1 - y_val_pos_actual)
+        rnd_TN = (1 - y_val_pos_pred) * (1 - y_val_pos_actual)
+        rnd_FN = (1 - y_val_pos_pred) * y_val_pos_actual
+        rnd_pr_val = rnd_TP / (rnd_TP+rnd_FP)
+        rnd_re_val = rnd_TP / (rnd_TP+rnd_FN)
+        rnd_ac_val = rnd_TP + rnd_TN
+        rnd_fbeta_tr = (1 + beta ** 2) * (rnd_pr_tr * rnd_re_tr) / \
+            ((beta ** 2 * rnd_pr_tr) + rnd_re_tr)
+        rnd_fbeta_val = (1 + beta ** 2) * (rnd_pr_val * rnd_re_val) / \
+            ((beta ** 2 * rnd_pr_val) + rnd_re_val)
         
         print('Results - average over all train/val splits:')
-        print('Positive train cases actual:        '+ str(round(y_train_pos_actual, 2)))
-        print('Positive train cases predicted:     '+ str(round(y_train_pos_pred, 2)))
-        print('Avg precision train (model/random): '+ str(round(np.mean(precision_tr), 2))\
+        print('Positive train cases actual:            '+ str(round(y_train_pos_actual, 2)))
+        print('Positive train cases predicted:         '+ str(round(y_train_pos_pred, 2)))
+        print('Avg precision train (model/random):     '+ str(round(np.mean(precision_tr), 2))\
               + ' / ' + str(round(rnd_pr_tr, 2)))
-        print('Avg recall train (model/random):    '+ str(round(np.mean(recall_tr), 2))\
+        print('Avg recall train (model/random):        '+ str(round(np.mean(recall_tr), 2))\
               + ' / ' + str(round(rnd_re_tr, 2)))
-        print('Avg accuracy train (model/random):  '+ str(round(np.mean(accuracy_tr), 2))\
+        print('Avg accuracy train (model/random):      '+ str(round(np.mean(accuracy_tr), 2))\
               + ' / ' + str(round(rnd_ac_tr, 2)))
-        print('Score train fbeta:                  '+ str(round(np.mean(score_fbeta_tr), 2))\
+        print('Score train fbeta:                      '+ str(round(np.mean(score_fbeta_tr), 2))\
               + ' / ' + str(round(rnd_fbeta_tr, 2)))
-        print('Positive test cases actual:         '+ str(round(y_test_pos_actual, 2)))
-        print('Positive test cases predicted:      '+ str(round(y_test_pos_pred, 2)))
-        print('Avg precision test (model/random):  '+ str(round(np.mean(precision_t), 2))\
-              + ' / ' + str(round(rnd_pr_t, 2)))
-        print('Avg recall test (model/random):     '+ str(round(np.mean(recall_t), 2))\
-              + ' / ' + str(round(rnd_re_t, 2)))
-        print('Avg accuracy test (model/random):   '+ str(round(np.mean(accuracy_t), 2))\
-              + ' / ' + str(round(rnd_ac_t, 2)))
-        print('Score test fbeta:                   '+ str(round(np.mean(score_fbeta_t), 2))\
-              + ' / ' + str(round(rnd_fbeta_t, 2)))
+        print('Positive validation cases actual:       '+ str(round(y_val_pos_actual, 2)))
+        print('Positive validation cases predicted:    '+ str(round(y_val_pos_pred, 2)))
+        print('Avg precision validation (model/random):'+ str(round(np.mean(precision_val), 2))\
+              + ' / ' + str(round(rnd_pr_val, 2)))
+        print('Avg recall validation (model/random):   '+ str(round(np.mean(recall_val), 2))\
+              + ' / ' + str(round(rnd_re_val, 2)))
+        print('Avg accuracy validation (model/random): '+ str(round(np.mean(accuracy_val), 2))\
+              + ' / ' + str(round(rnd_ac_val, 2)))
+        print('Score validation fbeta:                 '+ str(round(np.mean(score_fbeta_val), 2))\
+              + ' / ' + str(round(rnd_fbeta_val, 2)))
 
     def test_results(self, y_test, y_pred_t, threshold, beta=2):
-        y_pred_t_bin = y_pred_t > threshold
-        y_pred_t_bin = y_pred_t_bin.astype(int)
+        if threshold:
+            y_pred_t_bin = y_pred_t > threshold
+            y_pred_t_bin = y_pred_t_bin.astype(int)
+        else:
+            y_pred_t_bin = y_pred_t.astype(int)
         precision_t = metrics.precision_score(y_test, y_pred_t_bin)
         recall_t = metrics.recall_score(y_test, y_pred_t_bin)
         accuracy_t = metrics.accuracy_score(y_test, y_pred_t_bin)
@@ -249,38 +261,3 @@ class EvaluateResults():
             plt.tight_layout()
             plt.grid()
             plt.show()  
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    
-    
-    
-    
-    
-    
