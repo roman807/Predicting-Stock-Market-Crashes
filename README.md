@@ -2,7 +2,7 @@
 
 ### Project summary
 With this project I am introducing the design of a machine learning algorithm that predicts stock market crashes based on past 
-price information. I used public available market data from seven major stock market indices. This is a classification problem to forecast whether or not a crash will occur within the next 1, 3 or 6 months at any point in time. I trained and tested linear regression and logistic regression models, support vector machines, decision trees and recurrent neural networks with long short term memory (RNN LSTM). For a detailed description of the problem and findings please refer to the article [blog post link].
+price information. I used public available market data from seven major stock market indices. This is a classification problem to forecast whether or not a crash will occur within the next 1, 3 or 6 months at any point in time. I trained and tested linear and logistic regression models, support vector machines, decision trees and recurrent neural networks with long short term memory (RNN LSTM). For a detailed description of the problem and findings please refer to the article [blog post link].
 
 
 ### Repository organization:
