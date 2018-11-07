@@ -16,4 +16,4 @@ tuned and tested and present the results on the test set
 **data:** .csv files of the daily price information of all datasets used. This data is available on yahoo finance.
 
 **final predictor:** pretrained logistic regression model that shows current forecasting probabilities for a crash occuring
-within the next 1, 3 and 6 months. Clone this repository, download most recent historical price information of any stock market from yahoo finance (at least 3 years of data), specify the filename in inpurs.json and run **main.py** to get prediction results.
+within the next 1, 3 and 6 months. Clone this repository, download most recent historical price information of any stock market from yahoo finance (at least 3 years of data), specify the filename in **inputs.json** and run **main.py** to get prediction results.
