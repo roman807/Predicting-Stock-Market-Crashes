@@ -1,9 +1,19 @@
-# Predicting Crashes in Financial Markets
+# Predicting Stock Market Crashes
 
-A financial crash occurs when prices drop sharply and rapidly – typically more than 10% within a few days. Such a crash can be the side effect of a catastrophic event but marks more often the collapse of a long-term speculative bubble. Famous examples of major stock market crashes happened in 1987 (“Black Monday”) and 2008 (real estate bubble).
+With this project I am introduciong the design of machine learning models that predict stock market crashes based on past 
+price information. I used public availble market data from seven major stock market indices. This is a classification problem to forecast whether or not a crash will occur within the next 1, 3 or 6 months at any point in time. I trained and tested the linear regression and logistic regression models, support vector machines, decision trees and recurrent neural networks with long short term memory (RNN LSTM). For a detailed description of the problem and findings please refer to the article [blog post link].
 
-Predicting crashes to avoid substantial financial losses is a problem that a large variety of market participants are trying to solve. While economists and analysts mostly analyze economic indicators, some mathematicians and physicians investigated price patterns to identify and predict such events. A popular example is Physics professor Didier Sornette who applied power laws (found to predict earthquakes) to financial markets and successfully predicted multiple financial crashes (one example being the 2008 mortgage bubble).
+Following files and directories are available:
 
-With this project I aim to to predict financial crashes using historical price information with machine learning algorithms. While Professor Sornette applies power laws to price information to predict crashes, a machine learning algorithm is instead expected to learn price patterns that precede a financial crash and to predict future crashes that way. 
+**exploration.ipynb:** Data exploration and crash definition and identification for all seven data sets.
 
-This project is work in progress and and I am updating code that presents the findings in Jupyter notebooks on an ongoing basis.
+**results.ipynb:** A summary of the results for training, validation and test results of all tested models. For more detail
+refer to the jupyter notebooks in the models directory.
+
+**models:** Folder containing jupyter notebooks of all tested models. The notebooks illustrate how the models were trained,
+tuned and tested and present the results on the test set
+
+**data:** .csv files of the daily price information of all datasets used. This data is available on yahoo finance.
+
+**final predictor:** pretrained logistic regression model that shows current forecasting probabilities for a crash occuring
+within the next 1, 3 and 6 months. Clone this repository, download most recent historical price information of any stock market from yahoo finance (at least 3 years of data), specify the filename in inpurs.json and run **main.py** to get prediction results.
