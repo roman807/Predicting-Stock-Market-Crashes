@@ -2,10 +2,10 @@
 
 ### Project summary
 With this project I am introducing the design of a machine learning algorithm that predicts stock market crashes based on past 
-price information. I used public available market data from seven major stock market indices. This is a classification problem to forecast whether or not a crash will occur within the next 1, 3 or 6 months at any point in time. I trained and tested the linear regression and logistic regression models, support vector machines, decision trees and recurrent neural networks with long short term memory (RNN LSTM). For a detailed description of the problem and findings please refer to the article [blog post link].
+price information. I used public available market data from seven major stock market indices. This is a classification problem to forecast whether or not a crash will occur within the next 1, 3 or 6 months at any point in time. I trained and tested linear and logistic regression models, support vector machines, decision trees and recurrent neural networks with long short term memory (RNN LSTM). For a detailed description of the problem and findings please refer to the article [here](https://medium.com/@romanm111987/predicting-stock-market-crashes-with-statistical-machine-learning-techniques-and-neural-networks-b756d9b48497)
 
 
-### Repository organization:
+### Repository organization
 
 **exploration.ipynb:** Data exploration and crash definition and identification for all seven data sets.
 
@@ -17,7 +17,7 @@ tuned and tested and present the results on the test set
 
 **data:** .csv files of the daily price information of all datasets used. This data is available on yahoo finance.
 
-**final_predictor:** pre trained logistic regression model that shows current forecasting probabilities for a crash occurring
+**final_predictor:** Pre-trained logistic regression model that shows current forecasting probabilities for a crash occurring
 within the next 1, 3 and 6 months. Clone this repository, download most recent historical price information of any stock market from yahoo finance (at least 3 years of data), specify the filename in **inputs.json** and run **main.py** to get prediction results.
 
 
